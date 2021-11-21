@@ -68,8 +68,10 @@ class EnhancedClusteringHelper:
         self.l2 -= self.q2[-1, :, None]
         self.l2 -= self.q2[None, :, -1]
         self.l2 -= self.q2[None, -1, :]
-        if self.m > 1:
-            self.l2[:-1, -1] = self._delta_v()
+        self.l2[:, -1] = self._delta_v(-1)
+        self.diag_l2()
+
+    def diag_l2(self):
         self.l2 = (
                 np.triu(self.l2, 1) + np.where(np.tril(np.ones_like(self.l2)), -np.inf, 0)
         )
@@ -137,12 +139,10 @@ class EnhancedClusteringHelper:
 
                 self.l2[_i, _j] += _tmp
 
-        for x in range(i):
-            # print("%d %d " % (x, i))
-            self.l2[x, i] = self._delta(x, i)
-        for x in range(i + 1, self.m):
-            # print("%d %d " % (i, x))
-            self.l2[i, x] = self._delta(i, x)
+        deltas = self._delta_v(i)
+        self.l2[:, i] = deltas
+        self.l2[i, :] = deltas
+        self.diag_l2()
 
     def _q_l(self, _i, _j, _x):
         """
@@ -182,58 +182,29 @@ class EnhancedClusteringHelper:
 
         return pcx * math.log(pcx / (pc * px))
 
-    def _delta_v(self):
-        count_i_new = self.p1[:-1] + self.p1[-1]
-        count_2_new_s = self.p2[:-1, :-1] + self.p2[-1, :-1]
-        count_2_new_e = self.p2[:-1, :-1].T + self.p2[None, :-1, -1]
-        nominator = 1 / (count_i_new[:, None] * self.p1[None, :-1])
+    def _delta_v(self, x):
+        count_i_new = self.p1 + self.p1[x]
+        count_2_new_s = self.p2 + self.p2[x, :]
+        count_2_new_e = self.p2.T + self.p2[None, :, x]
+        nominator = 1 / (count_i_new[:, None] * self.p1[None, :])
         scores = (
                 count_2_new_s * np.log(count_2_new_s * nominator)
                 + count_2_new_e * np.log(count_2_new_e * nominator)
         )
-        loss = -self.q2.sum(axis=0)[:-1]
-        loss -= self.q2.sum(axis=1)[:-1]
-        loss -= self.q2[-1, :].sum()
-        loss -= self.q2[:, -1].sum()
+        scores[:, x] = 0
+        scores[x, :] = 0
+        loss = -self.q2.sum(axis=0)
+        loss -= self.q2.sum(axis=1)
+        loss -= self.q2[x, :].sum()
+        loss -= self.q2[:, x].sum()
         loss += scores.sum(axis=1) - np.diag(scores)
-        pij = (np.diag(self.p2)[:-1] + self.p2[:-1, -1] + self.p2[-1, :-1] + self.p2[-1, -1])
+        pij = (np.diag(self.p2) + self.p2[:, x] + self.p2[x, :] + self.p2[x, x])
         pi = count_i_new
         pj = count_i_new
         w2 = pij * np.log(pij / (pi * pj))
         loss += w2
-        loss += self.q2[:-1, -1]
-        loss += self.q2[-1, :-1]
-        loss += np.diag(self.q2)[:-1]
-        loss += self.q2[-1, -1]
-        return loss
-
-    def _delta(self, i, j):
-        count_i_new = self.p1[i] + self.p1[j]
-        count_2_new_s = self.p2[i, :] + self.p2[j, :]
-        count_2_new_e = self.p2[:, i] + self.p2[:, j]
-        nominator = 1 / (count_i_new * self.p1)
-        scores = (
-                count_2_new_s * np.log(count_2_new_s * nominator)
-                + count_2_new_e * np.log(count_2_new_e * nominator)
-        )
-        mask = np.ones_like(scores, dtype=bool)
-        mask[i] = False
-        mask[j] = False
-
-        loss = 0
-        loss -= self.q2[i, :].sum()
-        loss -= self.q2[:, i].sum()
-        loss -= self.q2[j, :].sum()
-        loss -= self.q2[:, j].sum()
-        loss += scores[mask].sum()
-
-        pij = (self.p2[i, i] + self.p2[i, j] + self.p2[j, i] + self.p2[j, j])
-        pi = count_i_new
-        pj = count_i_new
-        loss += pij * np.log(pij / (pi * pj))
-        loss += self.q2[i, j]
-        loss += self.q2[j, i]
-        loss += self.q2[i, i]
-        loss += self.q2[j, j]
-
+        loss += self.q2[:, x]
+        loss += self.q2[x, :]
+        loss += np.diag(self.q2)
+        loss += self.q2[x, x]
         return loss
