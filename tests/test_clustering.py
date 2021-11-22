@@ -8,7 +8,7 @@ from brown_clustering_old import (
 import numpy as np
 import pytest
 
-from brown_clustering import BrownClustering, Corpus
+from brown_clustering import BigramCorpus, BrownClustering
 
 files: Sequence[str] = [
     "small_fraud_corpus",
@@ -22,11 +22,15 @@ def test_analysis(file_name, testdata, test_snapshots):
     with input_path.open("r", encoding="utf-8") as f:
         text_data = json.load(f)
 
-    corpus = Corpus(text_data)
+    corpus = BigramCorpus(text_data)
+    corpus.print_stats()
     clustering = BrownClustering(corpus, 1000)
 
     output = clustering.train()
-    test_snapshots(output, output_path)
+    codes = clustering.codes()
+    test_snapshots({
+        "clusters": output, "codes": codes
+    }, output_path)
 
 
 def assert_l2(c1, c2):
@@ -41,15 +45,15 @@ def test_redundant_l2_calculation(file_name, testdata, test_snapshots):
     with input_path.open("r", encoding="utf-8") as f:
         text_data = json.load(f)
 
-    corpus = Corpus(text_data)
+    corpus = BigramCorpus(text_data)
     old_corpus = OldCorpus(text_data)
     clustering = BrownClustering(corpus, 1000)
     old_clustering = OldBrownClustering(old_corpus, 1000)
 
-    codes = clustering.ranks()
+    codes = corpus.ranks()
     old_codes = old_clustering.ranks(old_clustering.vocabulary)
 
-    assert dict(codes) == dict(old_codes)
+    assert codes == old_codes
 
     for i in range(100):
         print(i)

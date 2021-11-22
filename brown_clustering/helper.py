@@ -1,14 +1,14 @@
-import cProfile
-from copy import deepcopy
+from typing import List
 
 import numpy as np
 
+from brown_clustering.data import BigramCorpus
 
-class EnhancedClusteringHelper:
-    def __init__(self, corpus, max_clusters):
-        self.max_clusters = max_clusters
+
+class ClusteringHelper:
+    def __init__(self, corpus: BigramCorpus):
         self.m = 0
-        self.clusters = []
+        self.clusters: List[List[str]] = []
         self.p1 = np.zeros(0, dtype=float)
         self.p2 = np.zeros((0, 0), dtype=float)
         self.q2 = np.zeros((0, 0), dtype=float)
@@ -42,12 +42,12 @@ class EnhancedClusteringHelper:
 
         self.l2 = np.insert(self.l2, self.m, 0, axis=1)
         self.l2 = np.insert(self.l2, self.m, 0, axis=0)
-        self.l2[:, -1] = self._delta_v(-1)
-
-        self.m = self.m + 1
-        self.clusters.append(words)
-
         self._update_deltas()
+        self.l2[:, -1] = self._delta_v(-1)
+        self.diag_l2()
+
+        self.m += 1
+        self.clusters.append(words)
 
     def _update_deltas(self):
         self.l2 += self._q_l_v(-1)
@@ -56,7 +56,6 @@ class EnhancedClusteringHelper:
         self.l2 -= self.q2[-1, :, None]
         self.l2 -= self.q2[None, :, -1]
         self.l2 -= self.q2[None, -1, :]
-        self.diag_l2()
 
     def diag_l2(self):
         self.l2 = (
@@ -66,12 +65,6 @@ class EnhancedClusteringHelper:
                     -np.inf, 0
                 )
         )
-
-    def get_clusters(self):
-        return deepcopy(self.clusters)
-
-    def get_cluster(self, i):
-        return self.clusters[i]
 
     def merge_clusters(self, i, j):
         self.l2 -= self._q_l_v(i)
@@ -91,7 +84,7 @@ class EnhancedClusteringHelper:
 
         self.clusters[i].extend(self.clusters[j])
         del self.clusters[j]
-        self.m = self.m - 1
+        self.m -= 1
 
         self.p1[i] = self.p1[i] + self.p1[j]
         self.p1 = np.delete(self.p1, j, axis=0)
