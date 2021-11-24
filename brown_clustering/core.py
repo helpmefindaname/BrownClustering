@@ -1,4 +1,4 @@
-from collections import defaultdict
+from collections import defaultdict, deque
 from copy import deepcopy
 import heapq
 from typing import Dict, List
@@ -16,11 +16,11 @@ class BrownClustering:
         self.corpus = corpus
         self.vocabulary = corpus.vocabulary
         self.helper = ClusteringHelper(corpus)
-        self._codes: Dict[str, List[int]] = defaultdict(lambda: [])
+        self._codes: Dict[str, deque[str]] = defaultdict(lambda: deque())
 
     def codes(self):
         return {
-            key: ''.join([str(x) for x in reversed(value)])
+            key: ''.join(value)
             for key, value in self._codes.items()
         }
 
@@ -29,10 +29,10 @@ class BrownClustering:
         i, j = np.unravel_index(benefit.argmax(), benefit.shape)
 
         for word in self.helper.clusters[i]:
-            self._codes[word].append(0)
+            self._codes[word].appendleft("0")
 
         for word in self.helper.clusters[j]:
-            self._codes[word].append(1)
+            self._codes[word].appendleft("1")
 
         self.helper.merge_clusters(i, j)
         return i, j

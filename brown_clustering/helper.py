@@ -2,7 +2,105 @@ from typing import List
 
 import numpy as np
 
+# from numba import jit
+
 from brown_clustering.data import BigramCorpus
+
+
+# @jit(nopython=True, parallel=True)
+def _q_l(p1, p2, x):
+    pxc = p2[x, :]
+    px = p1[x]
+    pc = p1
+
+    return pxc * np.log(pxc / (pc * px))
+
+
+# @jit(nopython=True, parallel=True)
+def _q_r(p1, p2, x):
+    pcx = p2[:, x]
+    pc = p1
+    px = p1[x]
+
+    return pcx * np.log(pcx / (pc * px))
+
+
+# @jit(nopython=True, parallel=True)
+def diag_l2(l2):
+    return (
+        np.where(
+            np.triu(np.ones_like(l2, dtype=bool), 1),
+            l2,
+            -np.inf
+        )
+    )
+
+
+# @jit(nopython=True, parallel=True)
+def _q_l_v(p1, p2, x):
+    pcx = np.expand_dims(p2[:, x], -1) + np.expand_dims(p2[:, x], 0)
+    pc = np.expand_dims(p1, -1) + np.expand_dims(p1, 0)
+    px = p1[x]
+    val = pcx * np.log(pcx / (pc * px))
+    val[x, :] = 0
+    val[:, x] = 0
+    return val
+
+
+# @jit(nopython=True, parallel=True)
+def _q_r_v(p1, p2, x):
+    pxc = np.expand_dims(p2[x, :], -1) + np.expand_dims(p2[x, :], 0)
+    pc = np.expand_dims(p1, -1) + np.expand_dims(p1, 0)
+    px = p1[x]
+    val = pxc * np.log(pxc / (pc * px))
+    val[x, :] = 0
+    val[:, x] = 0
+    return val
+
+
+# @jit(nopython=True, parallel=True)
+def _delta_v(p1, p2, q2, x):
+    count_i_new = p1 + p1[x]
+    count_2_new_s = p2 + p2[x, :]
+    count_2_new_e = p2.T + np.expand_dims(p2[:, x], 0)
+    nominator = 1 / (
+            np.expand_dims(count_i_new, -1)
+            * np.expand_dims(p1, 0)
+    )
+    scores = (
+            count_2_new_s * np.log(count_2_new_s * nominator)
+            + count_2_new_e * np.log(count_2_new_e * nominator)
+    )
+    scores[:, x] = 0
+    scores[x, :] = 0
+    loss = -q2.sum(axis=0)
+    loss -= q2.sum(axis=1)
+    loss -= q2[x, :].sum()
+    loss -= q2[:, x].sum()
+    loss += scores.sum(axis=1) - np.diag(scores)
+    pij = (
+            np.diag(p2) + p2[:, x]
+            + p2[x, :] + p2[x, x]
+    )
+    pi = count_i_new
+    pj = count_i_new
+    w2 = pij * np.log(pij / (pi * pj))
+    loss += w2
+    loss += q2[:, x]
+    loss += q2[x, :]
+    loss += np.diag(q2)
+    loss += q2[x, x]
+    return loss
+
+
+# @jit(nopython=True, parallel=True)
+def _update_delta(l2, p1, p2, q2, x):
+    l2 += _q_l_v(p1, p2, x)
+    l2 += _q_r_v(p1, p2, x)
+    l2 -= np.expand_dims(q2[:, x], -1)
+    l2 -= np.expand_dims(q2[x, :], -1)
+    l2 -= np.expand_dims(q2[:, x], 0)
+    l2 -= np.expand_dims(q2[x, :], 0)
 
 
 class ClusteringHelper:
@@ -37,40 +135,23 @@ class ClusteringHelper:
         self.p2[self.m, self.m] = self.corpus.bigram_propa(words, words)
         self.q2 = np.insert(self.q2, self.m, 0, axis=1)
         self.q2 = np.insert(self.q2, self.m, 0, axis=0)
-        self.q2[-1, :] = self._q_l(-1)
-        self.q2[:, -1] = self._q_r(-1)
+        self.q2[-1, :] = _q_l(self.p1, self.p2, -1)
+        self.q2[:, -1] = _q_r(self.p1, self.p2, -1)
 
         self.l2 = np.insert(self.l2, self.m, 0, axis=1)
         self.l2 = np.insert(self.l2, self.m, 0, axis=0)
-        self._update_deltas()
-        self.l2[:, -1] = self._delta_v(-1)
-        self.diag_l2()
+        _update_delta(self.l2, self.p1, self.p2, self.q2, -1)
+        self.l2[:, -1] = _delta_v(self.p1, self.p2, self.q2, -1)
+        self.l2 = diag_l2(self.l2)
 
         self.m += 1
         self.clusters.append(words)
 
-    def _update_deltas(self):
-        self.l2 += self._q_l_v(-1)
-        self.l2 += self._q_r_v(-1)
-        self.l2 -= self.q2[:, -1, None]
-        self.l2 -= self.q2[-1, :, None]
-        self.l2 -= self.q2[None, :, -1]
-        self.l2 -= self.q2[None, -1, :]
-
-    def diag_l2(self):
-        self.l2 = (
-                np.triu(self.l2, 1) +
-                np.where(
-                    np.tril(np.ones_like(self.l2)),
-                    -np.inf, 0
-                )
-        )
-
     def merge_clusters(self, i, j):
-        self.l2 -= self._q_l_v(i)
-        self.l2 -= self._q_l_v(j)
-        self.l2 -= self._q_r_v(i)
-        self.l2 -= self._q_r_v(j)
+        self.l2 -= _q_l_v(self.p1, self.p2, i)
+        self.l2 -= _q_l_v(self.p1, self.p2, j)
+        self.l2 -= _q_r_v(self.p1, self.p2, i)
+        self.l2 -= _q_r_v(self.p1, self.p2, j)
 
         self.l2 += self.q2[i, :, None]
         self.l2 += self.q2[i, None, :]
@@ -86,94 +167,26 @@ class ClusteringHelper:
         del self.clusters[j]
         self.m -= 1
 
-        self.p1[i] = self.p1[i] + self.p1[j]
+        self.p1[i] += self.p1[j]
         self.p1 = np.delete(self.p1, j, axis=0)
 
-        self.p2[i, :] = self.p2[i, :] + self.p2[j, :]
-        self.p2[:, i] = self.p2[:, i] + self.p2[:, j]
+        self.p2[i, :] += self.p2[j, :]
+        self.p2[:, i] += self.p2[:, j]
         self.p2 = np.delete(self.p2, j, axis=0)
         self.p2 = np.delete(self.p2, j, axis=1)
 
         self.q2 = np.delete(self.q2, j, axis=0)
         self.q2 = np.delete(self.q2, j, axis=1)
 
-        self.q2[i, :] = self._q_l(i)
-        self.q2[:, i] = self._q_r(i)
+        self.q2[i, :] = _q_l(self.p1, self.p2, i)
+        self.q2[:, i] = _q_r(self.p1, self.p2, i)
 
         self.l2 = np.delete(self.l2, j, axis=0)
         self.l2 = np.delete(self.l2, j, axis=1)
 
-        self.l2 += self._q_l_v(i)
-        self.l2 += self._q_r_v(i)
+        _update_delta(self.l2, self.p1, self.p2, self.q2, i)
 
-        self.l2 -= self.q2[i, :, None]
-        self.l2 -= self.q2[i, None, :]
-        self.l2 -= self.q2[:, None, i]
-        self.l2 -= self.q2[None, :, i]
-
-        deltas = self._delta_v(i)
+        deltas = _delta_v(self.p1, self.p2, self.q2, i)
         self.l2[:, i] = deltas
         self.l2[i, :] = deltas
-        self.diag_l2()
-
-    def _q_l(self, x):
-        pxc = self.p2[x, :]
-        px = self.p1[x]
-        pc = self.p1
-
-        return pxc * np.log(pxc / (pc * px))
-
-    def _q_r(self, x):
-        pcx = self.p2[:, x]
-        pc = self.p1
-        px = self.p1[x]
-
-        return pcx * np.log(pcx / (pc * px))
-
-    def _q_l_v(self, x):
-        pcx = self.p2[:, x, None] + self.p2[None, :, x]
-        pc = self.p1[:, None] + self.p1[None, :]
-        px = self.p1[x]
-        val = pcx * np.log(pcx / (pc * px))
-        val[x, :] = 0
-        val[:, x] = 0
-        return val
-
-    def _q_r_v(self, x):
-        pxc = self.p2[x, :, None] + self.p2[None, x, :]
-        pc = self.p1[:, None] + self.p1[None, :]
-        px = self.p1[x]
-        val = pxc * np.log(pxc / (pc * px))
-        val[x, :] = 0
-        val[:, x] = 0
-        return val
-
-    def _delta_v(self, x):
-        count_i_new = self.p1 + self.p1[x]
-        count_2_new_s = self.p2 + self.p2[x, :]
-        count_2_new_e = self.p2.T + self.p2[None, :, x]
-        nominator = 1 / (count_i_new[:, None] * self.p1[None, :])
-        scores = (
-                count_2_new_s * np.log(count_2_new_s * nominator)
-                + count_2_new_e * np.log(count_2_new_e * nominator)
-        )
-        scores[:, x] = 0
-        scores[x, :] = 0
-        loss = -self.q2.sum(axis=0)
-        loss -= self.q2.sum(axis=1)
-        loss -= self.q2[x, :].sum()
-        loss -= self.q2[:, x].sum()
-        loss += scores.sum(axis=1) - np.diag(scores)
-        pij = (
-                np.diag(self.p2) + self.p2[:, x]
-                + self.p2[x, :] + self.p2[x, x]
-        )
-        pi = count_i_new
-        pj = count_i_new
-        w2 = pij * np.log(pij / (pi * pj))
-        loss += w2
-        loss += self.q2[:, x]
-        loss += self.q2[x, :]
-        loss += np.diag(self.q2)
-        loss += self.q2[x, x]
-        return loss
+        self.l2 = diag_l2(self.l2)
