@@ -16,7 +16,7 @@ setup(
             "pytest-mypy",
             "pytest-flake8",
             "flake8<4.0.0",
-            "flake8-import-order",
+            "flake8-isort",
             "flake8-cognitive-complexity",
         ]
     },

@@ -22,7 +22,7 @@ def test_analysis(file_name, testdata, test_snapshots):
     with input_path.open("r", encoding="utf-8") as f:
         text_data = json.load(f)
 
-    corpus = BigramCorpus(text_data)
+    corpus = BigramCorpus(text_data, min_count=5)
     corpus.print_stats()
     clustering = BrownClustering(corpus, 1000)
 

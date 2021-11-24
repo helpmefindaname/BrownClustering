@@ -1,13 +1,20 @@
-from nltk.util import ngrams
+from itertools import tee
 
 from brown_clustering.defaultdict import DefaultDict
 
 
 class BigramCorpus:
-    def __init__(self, corpus, alpha=1, start_symbol='<s>', end_symbol='</s>'):
+    def __init__(
+            self,
+            corpus,
+            alpha=1,
+            start_symbol='<s>',
+            end_symbol='</s>',
+            min_count=0
+    ):
         self.vocabulary = DefaultDict(0)
 
-        self.gather_vocab(corpus)
+        self.gather_vocab(corpus, min_count)
 
         word_count = len(self.vocabulary) + 2
         self.alpha = alpha
@@ -16,20 +23,31 @@ class BigramCorpus:
         self.bigrams = DefaultDict(alpha)
         self.gather_statistics(corpus, start_symbol, end_symbol)
 
-    def gather_vocab(self, corpus):
+    def gather_vocab(self, corpus, min_count):
         for sentence in corpus:
             for word in sentence:
                 self.vocabulary[word] += 1
 
-    def gather_statistics(self, corpus, start_symbol='<s>', end_symbol='</s>'):
+        self.vocabulary = dict(filter(
+            lambda x: x[1] < min_count,
+            self.vocabulary.items()
+        ))
+
+    def gather_statistics(
+            self,
+            corpus,
+            start_symbol='<s>',
+            end_symbol='</s>',
+    ):
         for sentence in corpus:
-            for word in sentence:
+            act_sentence = [start_symbol] + [
+                w for w in sentence if w in self.vocabulary
+            ] + [end_symbol]
+
+            for word in act_sentence:
                 self.unigrams[word] += 1
 
-            self.unigrams[start_symbol] += 1
-            self.unigrams[end_symbol] += 1
-
-            grams = ngrams([start_symbol] + sentence + [end_symbol], 2)
+            grams = two_grams(act_sentence)
             for w1, w2 in grams:
                 self.n += 1
                 self.bigrams[(w1, w2)] += 1
@@ -59,3 +77,9 @@ class BigramCorpus:
         print(f"unique 2gram count: {len(self.bigrams)}")
         print(f"2gram count: {self.n - alpha_bonus}")
         print(f"Laplace smoothing: {self.alpha}")
+
+
+def two_grams(sequence):
+    iterables = tee(sequence, 2)
+    next(iterables[1], None)
+    return zip(*iterables)
