@@ -1,5 +1,5 @@
-from brown_clustering_old.helpers import *
 from brown_clustering_old.core import *
+from brown_clustering_old.helpers import *
 
 
 class BrownClusteringValidation(BrownClustering):

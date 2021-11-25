@@ -1,4 +1,5 @@
 import datetime
+
 from brown_clustering_old.helpers import EnhancedClusteringHelper
 
 
@@ -89,8 +90,7 @@ class BrownClustering:
             print(str(itr) + "\t" + str(datetime.datetime.now()))
             self.helper.append_cluster([w[0]])
             _benefit = self.helper.compute_benefit()
-            best_merge = self.merge_arg_max(_benefit, self.helper)
-            print(best_merge)
+            self.merge_arg_max(_benefit, self.helper)
 
         print(self.helper.get_clusters())
 

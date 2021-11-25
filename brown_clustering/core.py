@@ -1,10 +1,10 @@
+import heapq
 from collections import defaultdict, deque
 from copy import deepcopy
-import heapq
-from typing import Dict, List
+from typing import Dict
 
 import numpy as np
-from tqdm import tqdm
+from tqdm import tqdm  # type: ignore
 
 from brown_clustering.data import BigramCorpus
 from brown_clustering.helper import ClusteringHelper
@@ -33,7 +33,6 @@ class BrownClustering:
 
         for word in self.helper.clusters[j]:
             self._codes[word].appendleft("1")
-
         self.helper.merge_clusters(i, j)
         return i, j
 

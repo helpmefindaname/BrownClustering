@@ -1,0 +1,10 @@
+numba
+numpy
+
+[dev]
+pytest
+pytest-mypy
+pytest-flake8
+flake8<4.0.0
+flake8-isort
+flake8-cognitive-complexity

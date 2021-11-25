@@ -29,7 +29,7 @@ class BigramCorpus:
                 self.vocabulary[word] += 1
 
         self.vocabulary = dict(filter(
-            lambda x: x[1] < min_count,
+            lambda x: x[1] >= min_count,
             self.vocabulary.items()
         ))
 

@@ -131,13 +131,12 @@ class EnhancedClusteringHelper(ClusteringHelper):
 
         self.q2 = np.delete(self.q2, j, axis=0)
         self.q2 = np.delete(self.q2, j, axis=1)
+        self.l2 = np.delete(self.l2, j, axis=0)
+        self.l2 = np.delete(self.l2, j, axis=1)
         for _x in range(self.m):
             self.q2[i, _x] = self._q(i, _x)
             self.q2[_x, i] = self._q(_x, i)
         self.q2[i, i] = self._q(i, i)
-
-        self.l2 = np.delete(self.l2, j, axis=0)
-        self.l2 = np.delete(self.l2, j, axis=1)
 
         for _i in range(self.m):
             for _j in range(_i + 1, self.m):
@@ -211,7 +210,10 @@ class EnhancedClusteringHelper(ClusteringHelper):
             pji = count_2_new_e[_x]
             pi = count_i_new
             pj = self.p1[_x]
-            return pij * math.log(pij / (pi * pj)) + pji * math.log(pji / (pi * pj))
+            return (
+                    pij * math.log(pij / (pi * pj))
+                    + pji * math.log(pji / (pi * pj))
+            )
 
         # O(1)
         def _weight_new_2():

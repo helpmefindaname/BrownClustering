@@ -1,4 +1,5 @@
 from setuptools import find_packages, setup
+
 setup(
     name='brown_clustering',
     packages=find_packages(include=("brown_clustering",)),
@@ -17,7 +18,6 @@ setup(
             "pytest-flake8",
             "flake8<4.0.0",
             "flake8-isort",
-            "flake8-cognitive-complexity",
         ]
     },
 )

@@ -1,2 +1,2 @@
-from brown_clustering_old.corpus import Corpus
 from brown_clustering_old.core import BrownClustering
+from brown_clustering_old.corpus import Corpus
