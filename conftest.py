@@ -10,7 +10,6 @@ def testdata():
     return base_path.joinpath
 
 
-
 @pytest.fixture
 def test_snapshots(gen_snapshots):
     def inner(output, output_path: Path):

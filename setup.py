@@ -6,10 +6,12 @@ setup(
     version='0.1.0',
     description='Fast Brown Clustering',
     author='bfuchs',
-    license='',
+    author_email="benedikt.fuchs.staw@hotmail.com",
+    license="MIT",
+    python_requires=">=3.6",
     install_requires=[
-        "nltk",
         "numpy",
+        "numba",
     ],
     extras_require={
         "dev": [
