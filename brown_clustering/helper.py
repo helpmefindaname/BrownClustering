@@ -75,8 +75,6 @@ def _q_r_v(p1, p2, x):
 @jit(nopython=True, parallel=True)
 def _delta_v(p1, p2, q2, x):
     n = p1.shape[0]
-    if x < 0:
-        x += n
     ret = np.zeros_like(p1)
 
     for i in prange(n):
@@ -201,7 +199,7 @@ class ClusteringHelper:
             )
         self.p2[self.m, self.m] = self.corpus.bigram_propa(words, words)
 
-        _update_heuristic(self.l2, self.p1, self.p2, self.q2, -1)
+        _update_heuristic(self.l2, self.p1, self.p2, self.q2, self.m)
 
         self.m += 1
         self.clusters.append(words)

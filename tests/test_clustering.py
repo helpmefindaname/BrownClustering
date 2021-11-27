@@ -33,7 +33,7 @@ def test_full_clustering(f, testdata, test_snapshots):
 
 @pytest.fixture
 def assert_per_iteration(testdata):
-    def inner_assert(rel_path, fn, n, total):
+    def inner_assert(rel_path, assert_fn, n, total):
         input_path = testdata(rel_path)
         with input_path.open("r", encoding="utf-8") as f:
             text_data = json.load(f)
@@ -42,10 +42,18 @@ def assert_per_iteration(testdata):
         codes = corpus.ranks()
         for i, (word, _) in enumerate(codes[:total]):
             clustering.helper.append_cluster([word])
-            fn(clustering)
+            try:
+                assert_fn(clustering)
+            except AssertionError:
+                print(f"Append {i}")
+                raise
             if i >= n:
                 clustering.merge_best()
-                fn(clustering)
+                try:
+                    assert_fn(clustering)
+                except AssertionError:
+                    print(f"Merge {i}")
+                    raise
 
     return inner_assert
 
@@ -98,7 +106,7 @@ def test_pmi_probabilities_right(f, assert_per_iteration):
     def assert_probabilities_right(c: BrownClustering):
         p2 = c.helper.p2
         p1 = c.helper.p1
-        q2 = p2 * np.log(p2 / (p1[None, :] * p1))
+        q2 = p2 * np.log(p2 / (p1[None, :] * p1[:, None]))
         np.testing.assert_allclose(q2, c.helper.q2)
 
     assert_per_iteration(
