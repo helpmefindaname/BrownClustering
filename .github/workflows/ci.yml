@@ -1,0 +1,17 @@
+name: 'Brown Clustering'
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code and setup python 3.6
+        uses: actions/checkout@v2
+        with:
+          python-version: 3.6
+      - name: Install Brown Clustering
+        run: |
+          pip install -e .[dev]
+          pip freeze
+      - name: Run tests including flake8 and mypy
+        run: pytest -vv

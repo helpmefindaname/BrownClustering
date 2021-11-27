@@ -38,11 +38,10 @@ def assert_per_iteration(testdata):
         with input_path.open("r", encoding="utf-8") as f:
             text_data = json.load(f)
         corpus = BigramCorpus(text_data, min_count=5)
-        corpus.print_stats()
         clustering = BrownClustering(corpus, n)
         codes = corpus.ranks()
         for i, (word, _) in enumerate(codes[:total]):
-            clustering.helper.append_cluster(word)
+            clustering.helper.append_cluster([word])
             fn(clustering)
             if i >= n:
                 clustering.merge_best()
