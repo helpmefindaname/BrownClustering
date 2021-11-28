@@ -45,9 +45,8 @@ def diag_l2(mask, l2):
 
 
 @jit(nopython=True, parallel=True)  # type: ignore
-def _q_l_v(mask, p1, p2, x):
+def _q_l_v(mask, l2, p1, p2, x):
     n = p2.shape[0]
-    ret = np.zeros_like(p2)
     px = p1[x]
     for i in prange(n):
         if i == x or not mask[i]:
@@ -57,15 +56,12 @@ def _q_l_v(mask, p1, p2, x):
                 continue
             pc = p1[i] + p1[j]
             pcx = p2[i, x] + p2[j, x]
-            ret[i, j] = pcx * np.log(pcx / (pc * px))
-
-    return ret
+            l2[i, j] += pcx * np.log(pcx / (pc * px))
 
 
 @jit(nopython=True, parallel=True)
-def _q_r_v(mask, p1, p2, x):
+def _q_r_v(mask, l2, p1, p2, x):
     n = p2.shape[0]
-    ret = np.zeros_like(p2)
     px = p1[x]
     for i in prange(n):
         if i == x or not mask[i]:
@@ -75,9 +71,37 @@ def _q_r_v(mask, p1, p2, x):
                 continue
             pc = p1[i] + p1[j]
             pcx = p2[x, i] + p2[x, j]
-            ret[i, j] = pcx * np.log(pcx / (pc * px))
+            l2[i, j] += pcx * np.log(pcx / (pc * px))
 
-    return ret
+
+@jit(nopython=True, parallel=True)  # type: ignore
+def _q_l_n(mask, l2, p1, p2, x):
+    n = p2.shape[0]
+    px = p1[x]
+    for i in prange(n):
+        if i == x or not mask[i]:
+            continue
+        for j in prange(n):
+            if j == x or not mask[j]:
+                continue
+            pc = p1[i] + p1[j]
+            pcx = p2[i, x] + p2[j, x]
+            l2[i, j] -= pcx * np.log(pcx / (pc * px))
+
+
+@jit(nopython=True, parallel=True)
+def _q_r_n(mask, l2, p1, p2, x):
+    n = p2.shape[0]
+    px = p1[x]
+    for i in prange(n):
+        if i == x or not mask[i]:
+            continue
+        for j in prange(n):
+            if j == x or not mask[j]:
+                continue
+            pc = p1[i] + p1[j]
+            pcx = p2[x, i] + p2[x, j]
+            l2[i, j] -= pcx * np.log(pcx / (pc * px))
 
 
 @jit(nopython=True, parallel=True)
@@ -119,33 +143,11 @@ def _delta_v(mask, p1, p2, q2, x):
 
 @jit(nopython=True, parallel=True)
 def _update_delta(mask, l2, p1, p2, q2, x):
-    qlv = _q_l_v(mask, p1, p2, x)
-    qrv = _q_r_v(mask, p1, p2, x)
+    _q_l_v(mask, l2, p1, p2, x)
+    _q_r_v(mask, l2, p1, p2, x)
 
     n = l2.shape[0]
 
-    for i in prange(n):
-        if not mask[i]:
-            continue
-        for j in prange(n):
-            if not mask[j]:
-                continue
-            l2[i, j] += (
-                    qlv[i, j]
-                    + qrv[i, j]
-                    - q2[i, x]
-                    - q2[j, x]
-                    - q2[x, i]
-                    - q2[x, j]
-            )
-
-
-@jit(nopython=True, parallel=True)
-def _reduce_delta(mask, l2, p1, p2, q2, x):
-    qlv = _q_l_v(mask, p1, p2, x)
-    qrv = _q_r_v(mask, p1, p2, x)
-
-    n = l2.shape[0]
     for i in prange(n):
         if not mask[i]:
             continue
@@ -153,12 +155,30 @@ def _reduce_delta(mask, l2, p1, p2, q2, x):
             if not mask[j]:
                 continue
             l2[i, j] -= (
-                    qlv[i, j]
-                    + qrv[i, j]
-                    - q2[i, x]
-                    - q2[j, x]
-                    - q2[x, i]
-                    - q2[x, j]
+                    + q2[i, x]
+                    + q2[j, x]
+                    + q2[x, i]
+                    + q2[x, j]
+            )
+
+
+@jit(nopython=True, parallel=True)
+def _reduce_delta(mask, l2, p1, p2, q2, x):
+    _q_l_n(mask, l2, p1, p2, x)
+    _q_r_n(mask, l2, p1, p2, x)
+
+    n = l2.shape[0]
+    for i in prange(n):
+        if not mask[i]:
+            continue
+        for j in prange(n):
+            if not mask[j]:
+                continue
+            l2[i, j] += (
+                    + q2[i, x]
+                    + q2[j, x]
+                    + q2[x, i]
+                    + q2[x, j]
             )
 
 
