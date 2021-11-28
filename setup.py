@@ -12,6 +12,7 @@ setup(
     install_requires=[
         "numpy",
         "numba",
+        "tqdm",
     ],
     extras_require={
         "dev": [
