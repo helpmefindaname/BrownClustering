@@ -15,7 +15,7 @@ class BrownClustering:
         self.m = m
         self.corpus = corpus
         self.vocabulary = corpus.vocabulary
-        self.helper = ClusteringHelper(corpus)
+        self.helper = ClusteringHelper(corpus, self.m + 1)
         self._codes: Dict[str, deque[str]] = defaultdict(lambda: deque())
 
     def codes(self):
