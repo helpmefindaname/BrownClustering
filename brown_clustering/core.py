@@ -1,7 +1,7 @@
 import heapq
 from collections import defaultdict, deque
 from copy import deepcopy
-from typing import Dict
+from typing import Deque, Dict
 
 import numpy as np
 from tqdm import tqdm  # type: ignore
@@ -16,7 +16,7 @@ class BrownClustering:
         self.corpus = corpus
         self.vocabulary = corpus.vocabulary
         self.helper = ClusteringHelper(corpus, self.m + 1)
-        self._codes: Dict[str, deque[str]] = defaultdict(lambda: deque())
+        self._codes: Dict[str, Deque[str]] = defaultdict(lambda: deque())
 
     def codes(self):
         return {

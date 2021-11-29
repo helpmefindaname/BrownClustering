@@ -1,6 +1,6 @@
 from itertools import tee
 
-from brown_clustering.defaultdict import DefaultDict
+from brown_clustering.defaultvaluedict import DefaultValueDict
 
 
 class BigramCorpus:
@@ -12,15 +12,15 @@ class BigramCorpus:
             end_symbol='</s>',
             min_count=0
     ):
-        self.vocabulary = DefaultDict(0)
+        self.vocabulary = DefaultValueDict(0)
 
         self.gather_vocab(corpus, min_count)
 
         word_count = len(self.vocabulary) + 2
         self.alpha = alpha
         self.n = alpha * word_count * word_count
-        self.unigrams = DefaultDict(alpha * word_count)
-        self.bigrams = DefaultDict(alpha)
+        self.unigrams = DefaultValueDict(alpha * word_count)
+        self.bigrams = DefaultValueDict(alpha)
         self.gather_statistics(corpus, start_symbol, end_symbol)
 
     def gather_vocab(self, corpus, min_count):
