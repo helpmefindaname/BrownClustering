@@ -7,7 +7,7 @@ long_description = (base_path / "README.md").read_text()
 setup(
     name='brown_clustering',
     packages=find_packages(include=("brown_clustering",)),
-    version='0.1.0',
+    version='0.1.1',
     description='Fast Brown Clustering',
     long_description=long_description,
     long_description_content_type='text/markdown',
@@ -24,6 +24,7 @@ setup(
         "dev": [
             "pytest",
             "pytest-mypy",
+            "pytest-profiling",
             "pytest-flake8",
             "flake8<4.0.0",
             "flake8-isort",
