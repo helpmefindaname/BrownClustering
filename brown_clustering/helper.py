@@ -1,12 +1,12 @@
 from typing import List
 
 import numpy as np
-from numba import jit, prange  # type: ignore
+from numba import jit, prange
 
 from brown_clustering.data import BigramCorpus
 
 
-@jit(nopython=True, parallel=True)  # type: ignore
+@jit(nopython=True, parallel=True)
 def _q_l(mask, p1, p2, q2, x):
     n = p1.shape[0]
     px = p1[x]
@@ -19,7 +19,7 @@ def _q_l(mask, p1, p2, q2, x):
         q2[x, i] = pxc * np.log(pxc / (pc * px))
 
 
-@jit(nopython=True, parallel=True)  # type: ignore
+@jit(nopython=True, parallel=True)
 def _q_r(mask, p1, p2, q2, x):
     n = p1.shape[0]
     px = p1[x]
@@ -32,7 +32,7 @@ def _q_r(mask, p1, p2, q2, x):
         q2[i, x] = pxc * np.log(pxc / (pc * px))
 
 
-@jit(nopython=True, parallel=True)  # type: ignore
+@jit(nopython=True, parallel=True)
 def diag_l2(mask, l2):
     n = l2.shape[0]
     for i in prange(n):
@@ -44,7 +44,7 @@ def diag_l2(mask, l2):
                 l2[i, j] = -np.inf
 
 
-@jit(nopython=True, parallel=True)  # type: ignore
+@jit(nopython=True, parallel=True)
 def _q_l_v(mask, l2, p1, p2, x):
     n = p2.shape[0]
     px = p1[x]
@@ -74,7 +74,7 @@ def _q_r_v(mask, l2, p1, p2, x):
             l2[i, j] += pcx * np.log(pcx / (pc * px))
 
 
-@jit(nopython=True, parallel=True)  # type: ignore
+@jit(nopython=True, parallel=True)
 def _q_l_n(mask, l2, p1, p2, x):
     n = p2.shape[0]
     px = p1[x]
@@ -218,7 +218,7 @@ class ClusteringHelper:
         self.max_words = max_words
         self.corpus = corpus
 
-    def append_cluster(self, words):
+    def append_cluster(self, words: List[str]):
         new_i = self.mask.argmin()
         self.clusters[new_i] = words
 
@@ -239,7 +239,7 @@ class ClusteringHelper:
 
         self.m += 1
 
-    def merge_clusters(self, i, j):
+    def merge_clusters(self, i: int, j: int):
         self.clusters[i].extend(self.clusters[j])
         self.clusters[j] = []
         self.m -= 1

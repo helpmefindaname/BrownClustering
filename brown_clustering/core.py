@@ -1,30 +1,30 @@
 import heapq
 from collections import defaultdict, deque
 from copy import deepcopy
-from typing import Deque, Dict
+from typing import Deque, Dict, List, Sequence, Tuple
 
 import numpy as np
-from tqdm import tqdm  # type: ignore
+from tqdm import tqdm
 
 from brown_clustering.data import BigramCorpus
 from brown_clustering.helper import ClusteringHelper
 
 
 class BrownClustering:
-    def __init__(self, corpus: BigramCorpus, m):
+    def __init__(self, corpus: BigramCorpus, m: int):
         self.m = m
         self.corpus = corpus
         self.vocabulary = corpus.vocabulary
         self.helper = ClusteringHelper(corpus, self.m + 1)
         self._codes: Dict[str, Deque[str]] = defaultdict(lambda: deque())
 
-    def codes(self):
+    def codes(self) -> Dict[str, str]:
         return {
             key: ''.join(value)
             for key, value in self._codes.items()
         }
 
-    def merge_best(self):
+    def merge_best(self) -> Tuple[int, int]:
         benefit = self.helper.l2
         i, j = np.unravel_index(benefit.argmax(), benefit.shape)
 
@@ -36,7 +36,9 @@ class BrownClustering:
         self.helper.merge_clusters(i, j)
         return i, j
 
-    def _code_similarity(self, code1, code2):
+    def _code_similarity(
+            self, code1: Sequence[str], code2: Sequence[str]
+    ) -> int:
         count = 0
         for w1, w2 in zip(code1, code2):
             if w1 == w2:
@@ -45,7 +47,7 @@ class BrownClustering:
                 return count
         return count
 
-    def get_similar(self, word, cap=10):
+    def get_similar(self, word: str, cap: int = 10) -> List[Tuple[str, str]]:
         tmp = self.codes()
         if word not in tmp:
             return []
@@ -59,7 +61,7 @@ class BrownClustering:
         )
         return best
 
-    def train(self):
+    def train(self) -> List[List[str]]:
         words = self.corpus.ranks()
 
         for w, count in tqdm(words):
