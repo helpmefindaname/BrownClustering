@@ -7,7 +7,7 @@ long_description = (base_path / "README.md").read_text()
 setup(
     name='brown_clustering',
     packages=find_packages(include=("brown_clustering",)),
-    version='0.1.1',
+    version='0.1.2',
     description='Fast Brown Clustering',
     long_description=long_description,
     long_description_content_type='text/markdown',
