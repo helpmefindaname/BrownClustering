@@ -63,7 +63,7 @@ def test_unigram_probabilities_right(f, assert_per_iteration):
     file_name, _ = f
 
     def assert_probabilities_right(c: BrownClustering):
-        mask = c.helper.mask
+        mask = c.helper.used
         p1 = np.array([
             c.corpus.unigram_propa(cluster)
             for cluster in c.helper.clusters
@@ -83,7 +83,7 @@ def test_bigram_probabilities_right(f, assert_per_iteration):
     file_name, _ = f
 
     def assert_probabilities_right(c: BrownClustering):
-        mask = c.helper.mask
+        mask = c.helper.used
         p2 = np.array([
             [
                 c.corpus.bigram_propa(cluster1, cluster2)
@@ -108,7 +108,7 @@ def test_pmi_probabilities_right(f, assert_per_iteration):
     file_name, _ = f
 
     def assert_probabilities_right(c: BrownClustering):
-        mask = c.helper.mask
+        mask = c.helper.used
         p2 = c.helper.p2[mask, :][:, mask]
         p1 = c.helper.p1[mask]
         q2 = p2 * np.log(p2 / (p1[None, :] * p1[:, None]))
@@ -127,7 +127,7 @@ def test_l2_right(f, assert_per_iteration):
     file_name, _ = f
 
     def assert_l2_right(c: BrownClustering):
-        mask = c.helper.mask
+        mask = c.helper.used
         p2 = c.helper.p2[mask, :][:, mask]
         p1 = c.helper.p1[mask]
         q2 = c.helper.q2[mask, :][:, mask]
@@ -160,5 +160,29 @@ def test_l2_right(f, assert_per_iteration):
         f"{file_name}_in.json",
         assert_l2_right,
         n=30,
+        total=300,
+    )
+
+
+@pytest.mark.parametrize("f", files)
+def test_l2_right(f, assert_per_iteration):
+    file_name, _ = f
+
+    def assert_cluster_size(c: BrownClustering):
+        mask = c.helper.used
+        clusters = c.helper.copy_clusters()
+        assert len(clusters) == mask.sum()
+        len_total_words = 0
+        unique_words = set()
+        for c in clusters:
+            assert len(c) > 0
+            len_total_words += len(c)
+            unique_words.update(c)
+        assert len(unique_words) == len_total_words
+
+    assert_per_iteration(
+        f"{file_name}_in.json",
+        assert_cluster_size,
+        n=100,
         total=300,
     )

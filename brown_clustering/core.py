@@ -1,6 +1,5 @@
 import heapq
 from collections import defaultdict, deque
-from copy import deepcopy
 from typing import Deque, Dict, List, Sequence, Tuple
 
 import numpy as np
@@ -69,7 +68,7 @@ class BrownClustering:
             if self.helper.m > self.m:
                 self.merge_best()
 
-        clusters = deepcopy(self.helper.clusters)
+        clusters = self.helper.copy_clusters()
 
         for _ in range(len(clusters) - 1):
             self.merge_best()

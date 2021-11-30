@@ -1,3 +1,4 @@
+from copy import deepcopy
 from typing import List
 
 import numpy as np
@@ -7,12 +8,12 @@ from brown_clustering.data import BigramCorpus
 
 
 @jit(nopython=True, parallel=True)
-def _q_l(mask, p1, p2, q2, x):
+def _q_l(used, p1, p2, q2, x):
     n = p1.shape[0]
     px = p1[x]
 
     for i in prange(n):
-        if not mask[i]:
+        if not used[i]:
             continue
         pxc = p2[x, i]
         pc = p1[i]
@@ -20,12 +21,12 @@ def _q_l(mask, p1, p2, q2, x):
 
 
 @jit(nopython=True, parallel=True)
-def _q_r(mask, p1, p2, q2, x):
+def _q_r(used, p1, p2, q2, x):
     n = p1.shape[0]
     px = p1[x]
 
     for i in prange(n):
-        if not mask[i]:
+        if not used[i]:
             continue
         pxc = p2[i, x]
         pc = p1[i]
@@ -33,26 +34,23 @@ def _q_r(mask, p1, p2, q2, x):
 
 
 @jit(nopython=True, parallel=True)
-def diag_l2(mask, l2):
+def diag_l2(used, l2):
     n = l2.shape[0]
     for i in prange(n):
-        if mask[i]:
-            for j in prange(i + 1):
-                l2[i, j] = -np.inf
-        else:
-            for j in prange(n):
+        for j in prange(n):
+            if not used[i] or not used[j] or i >= j:
                 l2[i, j] = -np.inf
 
 
 @jit(nopython=True, parallel=True)
-def _q_l_v(mask, l2, p1, p2, x):
+def _q_l_v(used, l2, p1, p2, x):
     n = p2.shape[0]
     px = p1[x]
     for i in prange(n):
-        if i == x or not mask[i]:
+        if i == x or not used[i]:
             continue
         for j in prange(n):
-            if j == x or not mask[j]:
+            if j == x or not used[j]:
                 continue
             pc = p1[i] + p1[j]
             pcx = p2[i, x] + p2[j, x]
@@ -60,14 +58,14 @@ def _q_l_v(mask, l2, p1, p2, x):
 
 
 @jit(nopython=True, parallel=True)
-def _q_r_v(mask, l2, p1, p2, x):
+def _q_r_v(used, l2, p1, p2, x):
     n = p2.shape[0]
     px = p1[x]
     for i in prange(n):
-        if i == x or not mask[i]:
+        if i == x or not used[i]:
             continue
         for j in prange(n):
-            if j == x or not mask[j]:
+            if j == x or not used[j]:
                 continue
             pc = p1[i] + p1[j]
             pcx = p2[x, i] + p2[x, j]
@@ -75,14 +73,14 @@ def _q_r_v(mask, l2, p1, p2, x):
 
 
 @jit(nopython=True, parallel=True)
-def _q_l_n(mask, l2, p1, p2, x):
+def _q_l_n(used, l2, p1, p2, x):
     n = p2.shape[0]
     px = p1[x]
     for i in prange(n):
-        if i == x or not mask[i]:
+        if i == x or not used[i]:
             continue
         for j in prange(n):
-            if j == x or not mask[j]:
+            if j == x or not used[j]:
                 continue
             pc = p1[i] + p1[j]
             pcx = p2[i, x] + p2[j, x]
@@ -90,14 +88,14 @@ def _q_l_n(mask, l2, p1, p2, x):
 
 
 @jit(nopython=True, parallel=True)
-def _q_r_n(mask, l2, p1, p2, x):
+def _q_r_n(used, l2, p1, p2, x):
     n = p2.shape[0]
     px = p1[x]
     for i in prange(n):
-        if i == x or not mask[i]:
+        if i == x or not used[i]:
             continue
         for j in prange(n):
-            if j == x or not mask[j]:
+            if j == x or not used[j]:
                 continue
             pc = p1[i] + p1[j]
             pcx = p2[x, i] + p2[x, j]
@@ -105,12 +103,12 @@ def _q_r_n(mask, l2, p1, p2, x):
 
 
 @jit(nopython=True, parallel=True)
-def _delta_v(mask, p1, p2, q2, x):
+def _delta_v(used, p1, p2, q2, x):
     n = p1.shape[0]
     ret = np.zeros_like(p1)
 
     for i in prange(n):
-        if not mask[i]:
+        if not used[i]:
             continue
         pij = p2[i, i] + p2[i, x] + p2[x, i] + p2[x, x]
         pi = pj = p1[x] + p1[i]
@@ -122,7 +120,7 @@ def _delta_v(mask, p1, p2, q2, x):
 
         ppi = p1[i] + p1[x]
         for j in prange(n):
-            if j == i or j == x or not mask[j]:
+            if j == i or j == x or not used[j]:
                 continue
 
             ret[i] -= q2[i, j]
@@ -163,16 +161,16 @@ def _update_delta(mask, l2, p1, p2, q2, x):
 
 
 @jit(nopython=True, parallel=True)
-def _reduce_delta(mask, l2, p1, p2, q2, x):
-    _q_l_n(mask, l2, p1, p2, x)
-    _q_r_n(mask, l2, p1, p2, x)
+def _reduce_delta(used, l2, p1, p2, q2, x):
+    _q_l_n(used, l2, p1, p2, x)
+    _q_r_n(used, l2, p1, p2, x)
 
     n = l2.shape[0]
     for i in prange(n):
-        if not mask[i]:
+        if not used[i]:
             continue
         for j in prange(n):
-            if not mask[j]:
+            if not used[j]:
                 continue
             l2[i, j] += (
                     + q2[i, x]
@@ -183,22 +181,22 @@ def _reduce_delta(mask, l2, p1, p2, q2, x):
 
 
 @jit(nopython=True, parallel=True)
-def _update_heuristic(mask, l2, p1, p2, q2, x):
-    _q_l(mask, p1, p2, q2, x)
-    _q_r(mask, p1, p2, q2, x)
+def _update_heuristic(used, l2, p1, p2, q2, x):
+    _q_l(used, p1, p2, q2, x)
+    _q_r(used, p1, p2, q2, x)
 
-    _update_delta(mask, l2, p1, p2, q2, x)
-    deltas = _delta_v(mask, p1, p2, q2, x)
+    _update_delta(used, l2, p1, p2, q2, x)
+    deltas = _delta_v(used, p1, p2, q2, x)
     l2[:, x] = deltas
     l2[x, :] = deltas
-    diag_l2(mask, l2)
+    diag_l2(used, l2)
 
 
 @jit(nopython=True)
-def _combine_clusters(mask, l2, p1, p2, q2, i, j):
+def _combine_clusters(used, l2, p1, p2, q2, i, j):
     n = p2.shape[0]
-    _reduce_delta(mask, l2, p1, p2, q2, i)
-    _reduce_delta(mask, l2, p1, p2, q2, j)
+    _reduce_delta(used, l2, p1, p2, q2, i)
+    _reduce_delta(used, l2, p1, p2, q2, j)
     p1[i] += p1[j]
     for k in prange(n):
         p2[i, k] += p2[j, k]
@@ -214,12 +212,19 @@ class ClusteringHelper:
         self.p2 = np.zeros((max_words, max_words), dtype=float)
         self.q2 = np.zeros((max_words, max_words), dtype=float)
         self.l2 = np.zeros((max_words, max_words), dtype=float)
-        self.mask = np.zeros(max_words, dtype=bool)
+        self.used = np.zeros(max_words, dtype=bool)
         self.max_words = max_words
         self.corpus = corpus
 
+    def copy_clusters(self):
+        return [
+            c
+            for c, used in zip(deepcopy(self.clusters), self.used)
+            if used
+        ]
+
     def append_cluster(self, words: List[str]):
-        new_i = self.mask.argmin()
+        new_i = self.used.argmin()
         self.clusters[new_i] = words
 
         self.p1[new_i] = self.corpus.unigram_propa(words)
@@ -234,17 +239,18 @@ class ClusteringHelper:
                 words
             )
         self.p2[new_i, new_i] = self.corpus.bigram_propa(words, words)
-        self.mask[new_i] = True
-        _update_heuristic(self.mask, self.l2, self.p1, self.p2, self.q2, new_i)
+        self.used[new_i] = True
+        _update_heuristic(self.used, self.l2, self.p1, self.p2, self.q2, new_i)
 
         self.m += 1
 
     def merge_clusters(self, i: int, j: int):
+        assert self.used[i] and self.used[j]
         self.clusters[i].extend(self.clusters[j])
         self.clusters[j] = []
         self.m -= 1
 
-        _combine_clusters(self.mask, self.l2, self.p1, self.p2, self.q2, i, j)
-        self.mask[j] = False
+        _combine_clusters(self.used, self.l2, self.p1, self.p2, self.q2, i, j)
+        self.used[j] = False
 
-        _update_heuristic(self.mask, self.l2, self.p1, self.p2, self.q2, i)
+        _update_heuristic(self.used, self.l2, self.p1, self.p2, self.q2, i)
