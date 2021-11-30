@@ -82,7 +82,7 @@ n is the unique token count and m is the computation window size.
 * Proper CI-CD and testing
 
 ### Benchmarking
-I benchmarked using the [small_fraud_corpus_in.json](tests/data/small_fraud_corpus_in.json) as input, `m=1000` clusters on a `Lenovo Legion 7i` with `Processor	Intel(R) Core(TM) i7-10750H CPU @ 2.60GHz, 2592 Mhz, 6 Core(s), 12 Logical Processor(s)
+I benchmarked using the [small_fraud_corpus_in.json](tests/data/small_fraud_corpus_in.json) as input, `m=1000` clusters on a `Lenovo Legion 7i` with `Processor	Intel(R) Core(TM) i7-10750H CPU @ 2.60GHz, 2592 Mhz, 6 Core(s), 12 Logical Processor(s)`
 
 running the original code took me more than `16 hours`. With the current optimizations it takes `6:51 minutes`.
 
