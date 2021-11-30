@@ -1,5 +1,5 @@
 import json
-from typing import Sequence, Tuple
+from typing import Sequence, Tuple, Set
 
 import numpy as np
 import pytest
@@ -165,7 +165,7 @@ def test_l2_right(f, assert_per_iteration):
 
 
 @pytest.mark.parametrize("f", files)
-def test_l2_right(f, assert_per_iteration):
+def test_clusters_right(f, assert_per_iteration):
     file_name, _ = f
 
     def assert_cluster_size(c: BrownClustering):
@@ -173,11 +173,11 @@ def test_l2_right(f, assert_per_iteration):
         clusters = c.helper.copy_clusters()
         assert len(clusters) == mask.sum()
         len_total_words = 0
-        unique_words = set()
-        for c in clusters:
-            assert len(c) > 0
-            len_total_words += len(c)
-            unique_words.update(c)
+        unique_words: Set[str] = set()
+        for cluster in clusters:
+            assert len(cluster) > 0
+            len_total_words += len(cluster)
+            unique_words.update(cluster)
         assert len(unique_words) == len_total_words
 
     assert_per_iteration(

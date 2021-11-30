@@ -3,7 +3,6 @@
 [![PyPI version](https://badge.fury.io/py/brown-clustering.svg)](https://badge.fury.io/py/brown-clustering)
 [![GitHub Issues](https://img.shields.io/github/issues/helpmefindaname/BrownClustering.svg)](https://github.com/helpmefindaname/BrownClustering/issues)
 [![License: MIT](https://img.shields.io/badge/License-MIT-brightgreen.svg)](https://opensource.org/licenses/MIT)
-
 Easy to use and fast Brown Clustering in python.
 
 ---
@@ -74,6 +73,7 @@ n is the unique token count and m is the computation window size.
 
 ### Improvements towards the original
 
+* Allow filtering the vocabulary by the minimum word count
 * Implement a `DefaultValueDict` which allows the Laplace Smoothing to not artificially explode the ram for all non-existing 2grams, but stores the alpha as default value.
 * Use [Tqdm](https://github.com/tqdm/tqdm) for a nice progressbar
 * Use [Numba](https://numba.pydata.org/) to speed up the performance by compiling to C code and using parallelism.

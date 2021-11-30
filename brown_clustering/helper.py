@@ -216,7 +216,7 @@ class ClusteringHelper:
         self.max_words = max_words
         self.corpus = corpus
 
-    def copy_clusters(self):
+    def copy_clusters(self) -> List[List[str]]:
         return [
             c
             for c, used in zip(deepcopy(self.clusters), self.used)
