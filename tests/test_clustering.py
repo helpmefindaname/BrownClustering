@@ -1,5 +1,5 @@
 import json
-from typing import Sequence, Tuple, Set
+from typing import Sequence, Set, Tuple
 
 import numpy as np
 import pytest
