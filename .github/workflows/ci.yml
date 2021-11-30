@@ -1,4 +1,4 @@
-name: 'Brown Clustering'
+name: 'Run tests for ci cd'
 on: [push, pull_request]
 
 jobs:
