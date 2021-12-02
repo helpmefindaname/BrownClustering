@@ -16,6 +16,7 @@ setup(
     author_email="benedikt.fuchs.staw@hotmail.com",
     license="MIT",
     python_requires=">=3.6",
+    url="https://github.com/helpmefindaname/BrownClustering",
     install_requires=[
         "numpy<1.21",
         "numba",
