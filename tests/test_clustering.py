@@ -8,7 +8,7 @@ from brown_clustering import BigramCorpus, BrownClustering
 
 files: Sequence[Tuple[str, int]] = [
     ("very_small_fraud_corpus", 50),
-    ("small_fraud_corpus", 1000)
+    ("small_fraud_corpus", 1000),
 ]
 
 
@@ -26,9 +26,7 @@ def test_full_clustering(f, testdata, test_snapshots):
 
     output = clustering.train()
     codes = clustering.codes()
-    test_snapshots({
-        "clusters": output, "codes": codes
-    }, output_path)
+    test_snapshots({"clusters": output, "codes": codes}, output_path)
 
 
 @pytest.fixture
@@ -64,10 +62,9 @@ def test_unigram_probabilities_right(f, assert_per_iteration):
 
     def assert_probabilities_right(c: BrownClustering):
         mask = c.helper.used
-        p1 = np.array([
-            c.corpus.unigram_propa(cluster)
-            for cluster in c.helper.clusters
-        ])
+        p1 = np.array(
+            [c.corpus.unigram_propa(cluster) for cluster in c.helper.clusters]
+        )
         np.testing.assert_allclose(p1[mask], c.helper.p1[mask])
 
     assert_per_iteration(
@@ -84,15 +81,17 @@ def test_bigram_probabilities_right(f, assert_per_iteration):
 
     def assert_probabilities_right(c: BrownClustering):
         mask = c.helper.used
-        p2 = np.array([
+        p2 = np.array(
             [
-                c.corpus.bigram_propa(cluster1, cluster2)
-                for cluster2, m2 in zip(c.helper.clusters, mask)
-                if m2
+                [
+                    c.corpus.bigram_propa(cluster1, cluster2)
+                    for cluster2, m2 in zip(c.helper.clusters, mask)
+                    if m2
+                ]
+                for cluster1, m1 in zip(c.helper.clusters, mask)
+                if m1
             ]
-            for cluster1, m1 in zip(c.helper.clusters, mask)
-            if m1
-        ])
+        )
         np.testing.assert_allclose(p2, c.helper.p2[mask, :][:, mask])
 
     assert_per_iteration(

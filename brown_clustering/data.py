@@ -8,12 +8,12 @@ Corpus = Sequence[Sequence[str]]
 
 class BigramCorpus:
     def __init__(
-            self,
-            corpus: Corpus,
-            alpha: float = 1,
-            start_symbol: str = '<s>',
-            end_symbol: str = '</s>',
-            min_count: int = 0
+        self,
+        corpus: Corpus,
+        alpha: float = 1,
+        start_symbol: str = "<s>",
+        end_symbol: str = "</s>",
+        min_count: int = 0,
     ):
         self.vocabulary: Dict[str, int] = DefaultValueDict(0)
 
@@ -31,21 +31,22 @@ class BigramCorpus:
             for word in sentence:
                 self.vocabulary[word] += 1
 
-        self.vocabulary = dict(filter(
-            lambda x: x[1] >= min_count,
-            self.vocabulary.items()
-        ))
+        self.vocabulary = dict(
+            filter(lambda x: x[1] >= min_count, self.vocabulary.items())
+        )
 
     def gather_statistics(
-            self,
-            corpus: Corpus,
-            start_symbol: str = '<s>',
-            end_symbol: str = '</s>',
+        self,
+        corpus: Corpus,
+        start_symbol: str = "<s>",
+        end_symbol: str = "</s>",
     ):
         for sentence in corpus:
-            act_sentence = [start_symbol] + [
-                w for w in sentence if w in self.vocabulary
-            ] + [end_symbol]
+            act_sentence = (
+                [start_symbol]
+                + [w for w in sentence if w in self.vocabulary]
+                + [end_symbol]
+            )
 
             for word in act_sentence:
                 self.unigrams[word] += 1
@@ -56,21 +57,15 @@ class BigramCorpus:
                 self.bigrams[(w1, w2)] += 1
 
     def bigram_propa(
-            self,
-            cluster1: Sequence[str],
-            cluster2: Sequence[str]
+        self, cluster1: Sequence[str], cluster2: Sequence[str]
     ) -> float:
-        return sum(
-            self.bigrams[(w1, w2)]
-            for w1 in cluster1
-            for w2 in cluster2
-        ) / self.n
+        return (
+            sum(self.bigrams[(w1, w2)] for w1 in cluster1 for w2 in cluster2)
+            / self.n
+        )
 
     def unigram_propa(self, cluster: Sequence[str]) -> float:
-        return sum(
-            self.unigrams[w]
-            for w in cluster
-        ) / self.n
+        return sum(self.unigrams[w] for w in cluster) / self.n
 
     def ranks(self) -> List[Tuple[str, int]]:
         return sorted(self.vocabulary.items(), key=lambda x: (-x[1], x[0]))
