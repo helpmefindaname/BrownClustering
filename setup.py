@@ -6,19 +6,19 @@ base_path = Path(__file__).parent
 long_description = (base_path / "README.md").read_text()
 
 setup(
-    name='brown_clustering',
+    name="brown_clustering",
     packages=find_packages(include=("brown_clustering",)),
-    version='0.1.4',
-    description='Fast Brown Clustering',
+    version="0.1.5",
+    description="Fast Brown Clustering",
     long_description=long_description,
-    long_description_content_type='text/markdown',
-    author='bfuchs',
+    long_description_content_type="text/markdown",
+    author="bfuchs",
     author_email="benedikt.fuchs.staw@hotmail.com",
     license="MIT",
-    python_requires=">=3.6",
+    python_requires=">=3.7",
     url="https://github.com/helpmefindaname/BrownClustering",
     install_requires=[
-        "numpy<1.21",
+        "numpy",
         "numba",
         "tqdm",
     ],

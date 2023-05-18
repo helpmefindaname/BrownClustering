@@ -1,6 +1,6 @@
 import heapq
 from collections import defaultdict, deque
-from typing import Deque, Dict, List, Sequence, Tuple
+from typing import cast, Deque, Dict, List, Sequence, Tuple
 
 import numpy as np
 from tqdm import tqdm
@@ -18,14 +18,11 @@ class BrownClustering:
         self._codes: Dict[str, Deque[str]] = defaultdict(lambda: deque())
 
     def codes(self) -> Dict[str, str]:
-        return {
-            key: ''.join(value)
-            for key, value in self._codes.items()
-        }
+        return {key: "".join(value) for key, value in self._codes.items()}
 
     def merge_best(self) -> Tuple[int, int]:
         benefit = self.helper.l2
-        i, j = np.unravel_index(benefit.argmax(), benefit.shape)
+        i, j = cast(Tuple[int, int], np.unravel_index(benefit.argmax(), benefit.shape))
 
         for word in self.helper.clusters[i]:
             self._codes[word].appendleft("0")
@@ -35,9 +32,7 @@ class BrownClustering:
         self.helper.merge_clusters(i, j)
         return i, j
 
-    def _code_similarity(
-            self, code1: Sequence[str], code2: Sequence[str]
-    ) -> int:
+    def _code_similarity(self, code1: Sequence[str], code2: Sequence[str]) -> int:
         count = 0
         for w1, w2 in zip(code1, code2):
             if w1 == w2:
@@ -56,7 +51,7 @@ class BrownClustering:
         best = heapq.nlargest(
             iterable=tmp.items(),
             n=cap,
-            key=lambda it: self._code_similarity(code, it[1])
+            key=lambda it: self._code_similarity(code, it[1]),
         )
         return best
 
