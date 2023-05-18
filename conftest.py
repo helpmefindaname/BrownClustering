@@ -15,7 +15,9 @@ def test_snapshots(gen_snapshots):
     def inner(output, output_path: Path):
         if gen_snapshots:
             with output_path.open("w+", encoding="utf-8") as f:
-                json.dump(output, f, indent=4, sort_keys=True, ensure_ascii=False)
+                json.dump(
+                    output, f, indent=4, sort_keys=True, ensure_ascii=False
+                )
         else:
             with output_path.open("r", encoding="utf-8") as f:
                 expected = json.load(f)

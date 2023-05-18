@@ -56,9 +56,12 @@ class BigramCorpus:
                 self.n += 1
                 self.bigrams[(w1, w2)] += 1
 
-    def bigram_propa(self, cluster1: Sequence[str], cluster2: Sequence[str]) -> float:
+    def bigram_propa(
+        self, cluster1: Sequence[str], cluster2: Sequence[str]
+    ) -> float:
         return (
-            sum(self.bigrams[(w1, w2)] for w1 in cluster1 for w2 in cluster2) / self.n
+            sum(self.bigrams[(w1, w2)] for w1 in cluster1 for w2 in cluster2)
+            / self.n
         )
 
     def unigram_propa(self, cluster: Sequence[str]) -> float:

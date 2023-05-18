@@ -207,7 +207,9 @@ class ClusteringHelper:
         self.corpus = corpus
 
     def copy_clusters(self) -> List[List[str]]:
-        return [c for c, used in zip(deepcopy(self.clusters), self.used) if used]
+        return [
+            c for c, used in zip(deepcopy(self.clusters), self.used) if used
+        ]
 
     def append_cluster(self, words: List[str]):
         new_i = self.used.argmin()
@@ -216,8 +218,12 @@ class ClusteringHelper:
         self.p1[new_i] = self.corpus.unigram_propa(words)
 
         for i in range(self.max_words):
-            self.p2[new_i, i] = self.corpus.bigram_propa(words, self.clusters[i])
-            self.p2[i, new_i] = self.corpus.bigram_propa(self.clusters[i], words)
+            self.p2[new_i, i] = self.corpus.bigram_propa(
+                words, self.clusters[i]
+            )
+            self.p2[i, new_i] = self.corpus.bigram_propa(
+                self.clusters[i], words
+            )
         self.p2[new_i, new_i] = self.corpus.bigram_propa(words, words)
         self.used[new_i] = True
         _update_heuristic(self.used, self.l2, self.p1, self.p2, self.q2, new_i)
